@@ -1,0 +1,17 @@
+run_name: run_${now:%Y-%m-%d_%H-%M-%S}
+output_dir: pipeline_runs/${run_name}
+
+logging:
+  level: INFO
+  log_dir: ${output_dir}/logs
+
+input:
+  traits_csv: "C:/repos/standard-trait-analysis/tests/data/traits_summary.csv"
+  experimental_design_excel: "C:/repos/standard-trait-analysis/tests/data/Wheat_EDPIE_cylinder_master_data.xlsx"
+
+steps:
+  - make_csvs
+  # - cleanup
+  # - outliers
+  # - pca
+  # - umap
