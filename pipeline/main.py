@@ -34,7 +34,7 @@ def run_pipeline(cfg: DictConfig, config_path: Path):
         print(f"[INFO] Running step '{step}' via Marimo...")
 
         result = subprocess.run(
-            ["marimo", "run", str(notebook_path), "--config", str(config_path)],
+            ["marimo", "run", notebook_path.as_posix()],
             capture_output=True,
         )
 
