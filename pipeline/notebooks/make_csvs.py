@@ -38,13 +38,6 @@ def _():
 
 
 @app.cell
-def _():
-    # Define step name
-    STEP_NAME = "make_csvs"
-    return STEP_NAME
-
-
-@app.cell
 def _(OmegaConf, Path, setup_step_logger, STEP_NAME):
     # Load and resolve the config
     cfg = OmegaConf.load("config.yaml")
