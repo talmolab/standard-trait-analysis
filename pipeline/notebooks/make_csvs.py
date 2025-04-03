@@ -40,18 +40,42 @@ def _():
         logging,
         OmegaConf,
         setup_step_logger,
+        argparse,
+        sys,
+        DictConfig,
     )
 
 
 @app.cell
-def _(OmegaConf, Path, setup_step_logger, STEP_NAME):
-    # Load and resolve the config
-    cfg = OmegaConf.load("config.yaml")
-    cfg = OmegaConf.to_container(cfg, resolve=True)
-    cfg = OmegaConf.create(cfg)
+def _(Path, sys, argparse, OmegaConf, setup_step_logger):
+    try:
+        # Parse CLI args from Marimo launch
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--config_path", type=str, default="config.yaml")
+        args = parser.parse_args(sys.argv[1:])
+        print(f"✅ Parsed args: {args}")
+    except Exception as e:
+        print(f"❌ Error parsing args: {e}")
+        raise
 
-    # Pull logging level from config
-    LOGGING_LEVEL = cfg.logging.level.upper()  # ensures e.g., "info" becomes "INFO"
+    # Load the resolved config (DO NOT re-resolve interpolations)
+    try:
+        cfg = OmegaConf.load(args.config_path)
+    except Exception as e:
+        print(f"❌ Failed to load config from {args.config_path}: {e}")
+        raise
+
+    LOGGING_LEVEL = cfg.logging.level.upper()
+
+    # Infer step name from script filename safely
+    try:
+        STEP_NAME = Path(sys.argv[0]).stem
+        print(f"✅ Inferred STEP_NAME: {STEP_NAME}")
+    except Exception:
+        STEP_NAME = "unknown_step"
+        print(
+            "⚠️ Could not infer STEP_NAME from sys.argv[0]; defaulting to 'unknown_step'"
+        )
 
     run_root = Path(cfg.output_dir)
     log_dir = run_root / "logs"
