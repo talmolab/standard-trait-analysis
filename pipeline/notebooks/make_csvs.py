@@ -14,10 +14,16 @@ def _():
     import datetime
     import openpyxl
     import logging
-    import OmegaConf
+    import argparse
+    import sys
 
     from typing import Optional, List
     from pathlib import Path
+    from omegaconf import OmegaConf, DictConfig
+
+    # Ensure the project root is on sys.path
+    project_root = Path(".").resolve()
+    sys.path.append(project_root.as_posix())
     from pipeline.pipeline_logger import setup_step_logger
 
     return (
