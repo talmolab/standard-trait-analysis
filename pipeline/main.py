@@ -25,22 +25,44 @@ def save_config(cfg, output_dir: Path) -> Path:
     return config_path
 
 
-def run_pipeline(cfg: DictConfig, config_path: Path):
+def run_pipeline(cfg: DictConfig, config_path: Path, dry_run: bool = False):
     steps = cfg.get("steps", [])
-    notebook_dir = Path("notebooks")
+    notebook_dir = Path("pipeline/notebooks")
 
     for step in steps:
         notebook_path = notebook_dir / f"{step}.py"
-        print(f"[INFO] Running step '{step}' via Marimo...")
+
+        command = [
+            "marimo",
+            "run",
+            notebook_path.as_posix(),
+            "--",
+            "--config_path",
+            config_path.as_posix(),
+        ]
+
+        print(f"\n[INFO] ----------------------------")
+        print(f"[INFO] Step: {step}")
+        print(f"[INFO] Notebook: {notebook_path}")
+        print(f"[INFO] Command: {' '.join(command)}")
+        print(f"[INFO] Config Path: {config_path}")
+        print(f"[INFO] ----------------------------\n")
+
+        if dry_run:
+            continue
 
         result = subprocess.run(
-            ["marimo", "run", notebook_path.as_posix()],
+            command,
             capture_output=True,
+            text=True,
         )
 
         if result.returncode != 0:
             print(f"[ERROR] Step '{step}' failed.")
-            print(result.stderr.decode())
+            print("STDERR:")
+            print(result.stderr)
+            print("STDOUT:")
+            print(result.stdout)
             break
         else:
             print(f"[✓] Step '{step}' completed.")
