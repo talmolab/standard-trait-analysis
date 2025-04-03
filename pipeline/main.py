@@ -75,17 +75,18 @@ def main():
         default="configs/base.yaml",
         help="Path to base config YAML (with interpolations)",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the commands and config info but don't run the pipeline.",
+    )
     args = parser.parse_args()
 
-    # Step 1: Resolve config
     cfg = load_and_resolve_config(args.config)
-
-    # Step 2: Get output dir from resolved config
     output_dir = Path(cfg.output_dir)
     config_path = save_config(cfg, output_dir)
 
-    # Step 3: Run the pipeline
-    run_pipeline(cfg, config_path)
+    run_pipeline(cfg, config_path, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
