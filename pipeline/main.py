@@ -110,7 +110,8 @@ def main():
     output_dir = Path(cfg.output_dir)
     config_path = save_config(cfg, output_dir)
 
-    run_pipeline(cfg, config_path, dry_run=args.dry_run)
+    run_pipeline(cfg, config_path, dry_run=args.dry_run, notebook_dir=args.notebook_dir)
+    print(f"[INFO] Pipeline completed.")
 
 
 if __name__ == "__main__":
