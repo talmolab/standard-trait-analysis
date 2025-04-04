@@ -25,9 +25,28 @@ def save_config(cfg, output_dir: Path) -> Path:
     return config_path
 
 
-def run_pipeline(cfg: DictConfig, config_path: Path, dry_run: bool = False):
+def run_pipeline(
+    cfg: DictConfig,
+    config_path: Path,
+    dry_run: bool = False,
+    notebook_dir: str = "pipeline/notebooks",
+) -> None:
+    """Run the pipeline steps defined in the config.
+
+    Args:
+        cfg (DictConfig): The resolved config object.
+        config_path (Path): Path to the resolved config file.
+        dry_run (bool): If True, print the commands without executing them.
+        notebook_dir (str): Directory containing the pipeline notebooks.
+    """
     steps = cfg.get("steps", [])
-    notebook_dir = Path("pipeline/notebooks")
+    if not steps:
+        print("[ERROR] No steps defined in the config.")
+        return
+    notebook_dir = Path(notebook_dir)
+    if not notebook_dir.exists():
+        print(f"[ERROR] Notebook directory '{notebook_dir}' does not exist.")
+        return
 
     for step in steps:
         notebook_path = notebook_dir / f"{step}.py"
@@ -72,8 +91,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default="configs/base.yaml",
+        default="pipeline/configs/base.yaml",
         help="Path to base config YAML (with interpolations)",
+    )
+    parser.add_argument(
+        "--notebook-dir",
+        default="pipeline/notebooks",
+        help="Directory containing the pipeline notebooks.",
     )
     parser.add_argument(
         "--dry-run",
