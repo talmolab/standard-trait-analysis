@@ -16,6 +16,7 @@ def _():
     import logging
     import argparse
     import sys
+    import marimo as mo
 
     from typing import Optional, List
     from pathlib import Path
@@ -25,29 +26,30 @@ def _():
     project_root = Path(".").resolve()
     sys.path.append(project_root.as_posix())
     from pipeline.pipeline_logger import setup_step_logger
-
     return (
+        DictConfig,
         List,
+        OmegaConf,
         Optional,
         Path,
+        argparse,
+        datetime,
+        logging,
+        mo,
         np,
+        openpyxl,
         os,
         pd,
         plt,
-        sns,
-        datetime,
-        openpyxl,
-        logging,
-        OmegaConf,
+        project_root,
         setup_step_logger,
-        argparse,
+        sns,
         sys,
-        DictConfig,
     )
 
 
 @app.cell
-def load_config(Path, sys, argparse, OmegaConf, setup_step_logger):
+def load_config(OmegaConf, Path, argparse, setup_step_logger, sys):
     try:
         # Parse CLI args from Marimo launch
         parser = argparse.ArgumentParser()
