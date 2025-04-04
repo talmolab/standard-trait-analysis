@@ -6,8 +6,9 @@ logging:
   log_dir: ${output_dir}/logs
 
 input:
-  traits_csv: "C:/repos/standard-trait-analysis/tests/data/traits_summary.csv"
-  experimental_design_excel: "C:/repos/standard-trait-analysis/tests/data/Wheat_EDPIE_cylinder_master_data.xlsx"
+  traits_csv: "tests/data/traits_summary.csv"
+  experimental_design_excel: "tests/data/Wheat_EDPIE_cylinder_master_data.xlsx"
+  experimental_design_sheet: "Redo_Master_Data"
 
 steps:
   - make_csvs
