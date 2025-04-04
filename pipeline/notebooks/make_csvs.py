@@ -78,29 +78,39 @@ def load_config(Path, sys, argparse, OmegaConf, setup_step_logger):
         )
 
     run_root = Path(cfg.output_dir)
-    log_dir = run_root / "logs"
+    log_dir = Path(cfg.logging.log_dir)
 
     logger = setup_step_logger(
         log_dir=log_dir,
         step_name=STEP_NAME,
         level=LOGGING_LEVEL,
     )
-    logger.info(f"Logger initialized for step '{STEP_NAME}'")
+    logger.info(f"Logger initialized for step '{STEP_NAME}' at {log_dir}")
 
     output_dir = run_root / STEP_NAME
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Step '{STEP_NAME}' starting with output dir {output_dir}")
 
-    return cfg, output_dir, logger
+    # Get the remaining config parameters for this step
+    TRAITS_CSV_PATH = Path(cfg.input.traits_csv)
+    EXPERIMENT_EXCEL_PATH = Path(cfg.input.experimental_design_excel)
+    logger.info(f"TRAITS_CSV_PATH: {TRAITS_CSV_PATH}")
+    logger.info(f"EXPERIMENT_EXCEL_PATH: {EXPERIMENT_EXCEL_PATH}")
+
+    return cfg, output_dir, logger, TRAITS_CSV_PATH, EXPERIMENT_EXCEL_PATH
 
 
-# @app.cell
-# def _(pd, EXPERIMENT_EXCEL_PATH):
-#     # Data from experiment (Lines, Barcodes etc.)
-#     master_data_df = pd.read_csv(EXPERIMENT_EXCEL_PATH)
-#     master_data_df.shape
-#     return (master_data_df,)
+@app.cell
+def read_master(pd, EXPERIMENT_EXCEL_PATH):
+    # Data from experiment (Lines, Barcodes etc.)
+    master_data_df = pd.read_excel(
+        EXPERIMENT_EXCEL_PATH,
+        sheet_name="Redo_Master_Data",  # Make configurable
+        engine="openpyxl",
+    )
+    master_data_df.shape
+    return (master_data_df,)
 
 
 # @app.cell
