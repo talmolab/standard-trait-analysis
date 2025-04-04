@@ -47,7 +47,7 @@ def _():
 
 
 @app.cell
-def _(Path, sys, argparse, OmegaConf, setup_step_logger):
+def load_config(Path, sys, argparse, OmegaConf, setup_step_logger):
     try:
         # Parse CLI args from Marimo launch
         parser = argparse.ArgumentParser()
