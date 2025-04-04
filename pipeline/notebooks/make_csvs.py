@@ -88,7 +88,6 @@ def load_config(OmegaConf, Path, argparse, setup_step_logger, sys):
         step_name=STEP_NAME,
         level=LOGGING_LEVEL,
     )
-    logger.info(f"Logger initialized for step '{STEP_NAME}' at {log_dir}")
 
     output_dir = run_root / STEP_NAME
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -98,76 +97,90 @@ def load_config(OmegaConf, Path, argparse, setup_step_logger, sys):
     # Get the remaining config parameters for this step
     TRAITS_CSV_PATH = Path(cfg.input.traits_csv)
     EXPERIMENT_EXCEL_PATH = Path(cfg.input.experimental_design_excel)
+    SHEET_NAME = cfg.input.experimental_design_sheet
     logger.info(f"TRAITS_CSV_PATH: {TRAITS_CSV_PATH}")
     logger.info(f"EXPERIMENT_EXCEL_PATH: {EXPERIMENT_EXCEL_PATH}")
-
-    return cfg, output_dir, logger, TRAITS_CSV_PATH, EXPERIMENT_EXCEL_PATH
+    logger.info(f"SHEET_NAME: {SHEET_NAME}")
+    return (
+        EXPERIMENT_EXCEL_PATH,
+        LOGGING_LEVEL,
+        SHEET_NAME,
+        STEP_NAME,
+        TRAITS_CSV_PATH,
+        args,
+        cfg,
+        log_dir,
+        logger,
+        output_dir,
+        parser,
+        run_root,
+    )
 
 
 @app.cell
-def read_master(pd, EXPERIMENT_EXCEL_PATH):
+def read_master(EXPERIMENT_EXCEL_PATH, SHEET_NAME, mo, pd):
     # Data from experiment (Lines, Barcodes etc.)
     master_data_df = pd.read_excel(
         EXPERIMENT_EXCEL_PATH,
-        sheet_name="Redo_Master_Data",  # Make configurable
+        sheet_name=SHEET_NAME,
         engine="openpyxl",
     )
-    master_data_df.shape
+    print(
+        f"📊 Read master data from {EXPERIMENT_EXCEL_PATH} (sheet: {SHEET_NAME}) with shape: {master_data_df.shape}"
+    )
+    # Remove leading and trailing whitespace from column names
+    master_data_df.columns = master_data_df.columns.str.strip()
+    print(f"🔍 Columns in Excel sheet: {master_data_df.columns.tolist()}")
+    mo.ui.table(master_data_df)
     return (master_data_df,)
 
 
-# @app.cell
-# def _(pd, TRAITS_CSV_PATH):
-#     traits_df = pd.read_csv(TRAITS_CSV_PATH)
-#     traits_df.shape
-#     return (traits_df,)
+@app.cell
+def read_traits(TRAITS_CSV_PATH, mo, pd):
+    traits_df = pd.read_csv(TRAITS_CSV_PATH)
+    print(f"📊 Read traits data from {TRAITS_CSV_PATH} with shape: {traits_df.shape}")
+    mo.ui.table(traits_df)
+    return (traits_df,)
 
 
-# @app.cell
-# def _(master_data_df, pd, traits_df):
-#     # Merge the two dataframes
-#     merged_data = pd.merge(master_data_df, traits_df, on="plant_qr_code", how="left")
-#     merged_data.shape
-#     return (merged_data,)
+@app.cell
+def merge_dfs(logger, master_data_df, pd, traits_df):
+    # `master_data_df` needs "Barcode" column renamed "plant_qr_code" to match `traits_df`
+    master_data_df.rename(columns={"Barcode": "plant_qr_code"}, inplace=True)
+    # Merge the two dataframes
+    merged_data = pd.merge(master_data_df, traits_df, on="plant_qr_code", how="left")
+    print(f"📊 Merged data shape: {merged_data.shape}")
+    logger.info(f"Merged data shape: {merged_data.shape}")
+
+    # Remove rows with missing values in the "plant_age_days" column
+    merged_data = merged_data[merged_data["plant_age_days"].notna()]
+    logger.info(f"Shape after dropping missing values: {merged_data.shape}")
+
+    # Make "plant_age_days" column numeric
+    merged_data["plant_age_days"] = pd.to_numeric(
+        merged_data["plant_age_days"], errors="coerce"
+    )
+    # Get unique values in the "plant_age_days" column
+    unique_plant_ages = merged_data["plant_age_days"].unique()
+    print(f"Unique plant ages: {unique_plant_ages}")
+    return merged_data, unique_plant_ages
 
 
-# @app.cell
-# def _(pd, merged_data):
-#     # Make "plant_age_days" column numeric
-#     merged_data["plant_age_days"] = pd.to_numeric(
-#         merged_data["plant_age_days"], errors="coerce"
-#     )
-#     # Get unique values in the "plant_age_days" column
-#     unique_plant_ages = merged_data["plant_age_days"].unique()
-#     print(f"Unique plant ages: {unique_plant_ages}")
+@app.cell
+def make_csvs_by_age(Path, logger, merged_data, output_dir, unique_plant_ages):
+    for age in unique_plant_ages:
+        # Filter the merged DataFrame for the current age
+        filtered_data = merged_data[merged_data["plant_age_days"] == age]
 
-#     return
-
-
-# @app.cell
-# def _(Path, merged_data, top_dir):
-#     # 7 Day-Old Plants only
-#     sleap_root_traits_7d = merged_data[merged_data["plant_age_days"] == 7]
-
-#     # Save the filtered DataFrame to a CSV file
-#     sleap_root_traits_7d.to_csv(
-#         Path(top_dir) / "biomass_and_sleap_root_traits_7d_after_qc.csv", index=False
-#     )
-#     print(
-#         f"Saved 7 Day-Old Plants data to CSV file: {Path(top_dir) / 'sleap_root_traits_7d.csv'} with shape: {sleap_root_traits_7d.shape}"
-#     )
-
-#     # 14 Day-Old Plants only
-#     sleap_root_traits_14d = merged_data[merged_data["plant_age_days"] == 14]
-
-#     # Save the filtered DataFrame to a CSV file
-#     sleap_root_traits_14d.to_csv(
-#         Path(top_dir) / "biomass_and_sleap_root_traits_14d_after_qc.csv", index=False
-#     )
-#     print(
-#         f"Saved 14 Day-Old Plants data to CSV file: {Path(top_dir) / 'sleap_root_traits_14d.csv'} with shape: {sleap_root_traits_14d.shape}"
-#     )
-#     return sleap_root_traits_14d, sleap_root_traits_7d
+        # Save the filtered DataFrame to a CSV file
+        filtered_data.to_csv(
+            Path(output_dir) / f"traits_{int(age)}DAG.csv",
+            index=False,
+        )
+        logger.info(
+            f"Saved {age} Day-Old Plants data to CSV file: {Path(output_dir) / f'traits_{int(age)}DAG.csv'} with shape: {filtered_data.shape}"
+        )
+    return age, filtered_data
 
 
 if __name__ == "__main__":
