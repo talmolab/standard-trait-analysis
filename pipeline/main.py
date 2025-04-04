@@ -25,22 +25,63 @@ def save_config(cfg, output_dir: Path) -> Path:
     return config_path
 
 
-def run_pipeline(cfg: DictConfig, config_path: Path):
+def run_pipeline(
+    cfg: DictConfig,
+    config_path: Path,
+    dry_run: bool = False,
+    notebook_dir: str = "pipeline/notebooks",
+) -> None:
+    """Run the pipeline steps defined in the config.
+
+    Args:
+        cfg (DictConfig): The resolved config object.
+        config_path (Path): Path to the resolved config file.
+        dry_run (bool): If True, print the commands without executing them.
+        notebook_dir (str): Directory containing the pipeline notebooks.
+    """
     steps = cfg.get("steps", [])
-    notebook_dir = Path("notebooks")
+    if not steps:
+        print("[ERROR] No steps defined in the config.")
+        return
+    notebook_dir = Path(notebook_dir)
+    if not notebook_dir.exists():
+        print(f"[ERROR] Notebook directory '{notebook_dir}' does not exist.")
+        return
 
     for step in steps:
         notebook_path = notebook_dir / f"{step}.py"
-        print(f"[INFO] Running step '{step}' via Marimo...")
+
+        command = [
+            "marimo",
+            "run",
+            notebook_path.as_posix(),
+            "--",
+            "--config_path",
+            config_path.as_posix(),
+        ]
+
+        print(f"\n[INFO] ----------------------------")
+        print(f"[INFO] Step: {step}")
+        print(f"[INFO] Notebook: {notebook_path}")
+        print(f"[INFO] Command: {' '.join(command)}")
+        print(f"[INFO] Config Path: {config_path}")
+        print(f"[INFO] ----------------------------\n")
+
+        if dry_run:
+            continue
 
         result = subprocess.run(
-            ["marimo", "run", str(notebook_path), "--config", str(config_path)],
+            command,
             capture_output=True,
+            text=True,
         )
 
         if result.returncode != 0:
             print(f"[ERROR] Step '{step}' failed.")
-            print(result.stderr.decode())
+            print("STDERR:")
+            print(result.stderr)
+            print("STDOUT:")
+            print(result.stdout)
             break
         else:
             print(f"[✓] Step '{step}' completed.")
@@ -50,20 +91,27 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default="configs/base.yaml",
+        default="pipeline/configs/base.yaml",
         help="Path to base config YAML (with interpolations)",
+    )
+    parser.add_argument(
+        "--notebook-dir",
+        default="pipeline/notebooks",
+        help="Directory containing the pipeline notebooks.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the commands and config info but don't run the pipeline.",
     )
     args = parser.parse_args()
 
-    # Step 1: Resolve config
     cfg = load_and_resolve_config(args.config)
-
-    # Step 2: Get output dir from resolved config
     output_dir = Path(cfg.output_dir)
     config_path = save_config(cfg, output_dir)
 
-    # Step 3: Run the pipeline
-    run_pipeline(cfg, config_path)
+    run_pipeline(cfg, config_path, dry_run=args.dry_run, notebook_dir=args.notebook_dir)
+    print(f"[INFO] Pipeline completed.")
 
 
 if __name__ == "__main__":

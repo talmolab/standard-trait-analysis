@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.11.17"
+__generated_with = "0.12.2"
 app = marimo.App()
 
 
@@ -14,118 +14,148 @@ def _():
     import datetime
     import openpyxl
     import logging
-    import OmegaConf
+    import argparse
+    import sys
+    import marimo as mo
 
     from typing import Optional, List
     from pathlib import Path
-    from pipeline.pipeline_logger import setup_step_logger
+    from omegaconf import OmegaConf, DictConfig
 
+    # Ensure the project root is on sys.path
+    project_root = Path(".").resolve()
+    sys.path.append(project_root.as_posix())
+    from pipeline.pipeline_logger import setup_step_logger
     return (
+        DictConfig,
         List,
+        OmegaConf,
         Optional,
         Path,
+        argparse,
+        datetime,
+        logging,
+        mo,
         np,
+        openpyxl,
         os,
         pd,
         plt,
-        sns,
-        datetime,
-        openpyxl,
-        logging,
-        OmegaConf,
+        project_root,
         setup_step_logger,
+        sns,
+        sys,
     )
 
 
 @app.cell
-def _():
-    # Define step name
-    STEP_NAME = "make_csvs"
-    return STEP_NAME
+def load_config(OmegaConf, Path, argparse, setup_step_logger, sys):
+    try:
+        # Parse CLI args from Marimo launch
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--config_path", type=str, default="config.yaml")
+        args = parser.parse_args(sys.argv[1:])
+        print(f"✅ Parsed args: {args}")
+    except Exception as e:
+        print(f"❌ Error parsing args: {e}")
+        raise
 
+    # Load the resolved config (DO NOT re-resolve interpolations)
+    try:
+        cfg = OmegaConf.load(args.config_path)
+        print(f"✅ Loaded config from {args.config_path}")
+    except Exception as e:
+        print(f"❌ Failed to load config from {args.config_path}: {e}")
+        raise
 
-@app.cell
-def _(OmegaConf, Path, setup_step_logger, STEP_NAME):
-    # Load and resolve the config
-    cfg = OmegaConf.load("config.yaml")
-    cfg = OmegaConf.to_container(cfg, resolve=True)
-    cfg = OmegaConf.create(cfg)
+    LOGGING_LEVEL = cfg.logging.level.upper()
 
-    # Pull logging level from config
-    LOGGING_LEVEL = cfg.logging.level.upper()  # ensures e.g., "info" becomes "INFO"
+    # Infer step name from script filename safely
+    try:
+        STEP_NAME = Path(sys.argv[0]).stem
+        print(f"✅ Inferred STEP_NAME: {STEP_NAME}")
+    except Exception:
+        STEP_NAME = "unknown_step"
+        print(
+            "⚠️ Could not infer STEP_NAME from sys.argv[0]; defaulting to 'unknown_step'"
+        )
 
     run_root = Path(cfg.output_dir)
-    log_dir = run_root / "logs"
+    log_dir = Path(cfg.logging.log_dir)
 
     logger = setup_step_logger(
         log_dir=log_dir,
         step_name=STEP_NAME,
         level=LOGGING_LEVEL,
     )
-    logger.info(f"Logger initialized for step '{STEP_NAME}'")
 
-    step_cfg = cfg[STEP_NAME]
     output_dir = run_root / STEP_NAME
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Step '{STEP_NAME}' starting with output dir {output_dir}")
 
-    return cfg, step_cfg, output_dir, logger
-
-
-@app.cell
-def _(os, datetime, Path, setup_step_logger, LOGGING_LEVEL):
-    logger, run_dir = setup_step_logger(
-        base_dir="runs",
-        run_prefix="run",
-        log_name="log.txt",
-        level=LOGGING_LEVEL,
+    # Get the remaining config parameters for this step
+    TRAITS_CSV_PATH = Path(cfg.input.traits_csv)
+    EXPERIMENT_EXCEL_PATH = Path(cfg.input.experimental_design_excel)
+    SHEET_NAME = cfg.input.experimental_design_sheet
+    logger.info(f"TRAITS_CSV_PATH: {TRAITS_CSV_PATH}")
+    logger.info(f"EXPERIMENT_EXCEL_PATH: {EXPERIMENT_EXCEL_PATH}")
+    logger.info(f"SHEET_NAME: {SHEET_NAME}")
+    return (
+        EXPERIMENT_EXCEL_PATH,
+        LOGGING_LEVEL,
+        SHEET_NAME,
+        STEP_NAME,
+        TRAITS_CSV_PATH,
+        args,
+        cfg,
+        log_dir,
+        logger,
+        output_dir,
+        parser,
+        run_root,
     )
 
-    logger.info("This log goes to both the notebook and a file.")
-
-    # Get current date and time
-    now = datetime.now()
-
-    # Format it to a string (e.g., 2025-04-02_15-30-00)
-    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-
-    # Create a folder name with the timestamp
-    folder_name = f"output_{timestamp}"
-
-    # Create the folder in the current directory
-    folder_path = Path(folder_name)
-    folder_path.mkdir(parents=True, exist_ok=True)
-
-    print(f"Created folder: {folder_path}")
-    return (folder_path,)
-
 
 @app.cell
-def _(pd, EXPERIMENT_EXCEL_PATH):
+def read_master(EXPERIMENT_EXCEL_PATH, SHEET_NAME, mo, pd):
     # Data from experiment (Lines, Barcodes etc.)
-    master_data_df = pd.read_csv(EXPERIMENT_EXCEL_PATH)
-    master_data_df.shape
+    master_data_df = pd.read_excel(
+        EXPERIMENT_EXCEL_PATH,
+        sheet_name=SHEET_NAME,
+        engine="openpyxl",
+    )
+    print(
+        f"📊 Read master data from {EXPERIMENT_EXCEL_PATH} (sheet: {SHEET_NAME}) with shape: {master_data_df.shape}"
+    )
+    # Remove leading and trailing whitespace from column names
+    master_data_df.columns = master_data_df.columns.str.strip()
+    print(f"🔍 Columns in Excel sheet: {master_data_df.columns.tolist()}")
+    mo.ui.table(master_data_df)
     return (master_data_df,)
 
 
 @app.cell
-def _(pd, TRAITS_CSV_PATH):
+def read_traits(TRAITS_CSV_PATH, mo, pd):
     traits_df = pd.read_csv(TRAITS_CSV_PATH)
-    traits_df.shape
+    print(f"📊 Read traits data from {TRAITS_CSV_PATH} with shape: {traits_df.shape}")
+    mo.ui.table(traits_df)
     return (traits_df,)
 
 
 @app.cell
-def _(master_data_df, pd, traits_df):
+def merge_dfs(logger, master_data_df, pd, traits_df):
+    # `master_data_df` needs "Barcode" column renamed "plant_qr_code" to match `traits_df`
+    master_data_df.rename(columns={"Barcode": "plant_qr_code"}, inplace=True)
     # Merge the two dataframes
     merged_data = pd.merge(master_data_df, traits_df, on="plant_qr_code", how="left")
-    merged_data.shape
-    return (merged_data,)
+    print(f"📊 Merged data shape: {merged_data.shape}")
+    logger.info(f"Merged data shape: {merged_data.shape}")
 
+    # Remove rows with missing values in the "plant_age_days" column
+    merged_data = merged_data[merged_data["plant_age_days"].notna()]
+    logger.info(f"Shape after dropping missing values: {merged_data.shape}")
 
-@app.cell
-def _(pd, merged_data):
     # Make "plant_age_days" column numeric
     merged_data["plant_age_days"] = pd.to_numeric(
         merged_data["plant_age_days"], errors="coerce"
@@ -133,34 +163,24 @@ def _(pd, merged_data):
     # Get unique values in the "plant_age_days" column
     unique_plant_ages = merged_data["plant_age_days"].unique()
     print(f"Unique plant ages: {unique_plant_ages}")
-
-    return
+    return merged_data, unique_plant_ages
 
 
 @app.cell
-def _(Path, merged_data, top_dir):
-    # 7 Day-Old Plants only
-    sleap_root_traits_7d = merged_data[merged_data["plant_age_days"] == 7]
+def make_csvs_by_age(Path, logger, merged_data, output_dir, unique_plant_ages):
+    for age in unique_plant_ages:
+        # Filter the merged DataFrame for the current age
+        filtered_data = merged_data[merged_data["plant_age_days"] == age]
 
-    # Save the filtered DataFrame to a CSV file
-    sleap_root_traits_7d.to_csv(
-        Path(top_dir) / "biomass_and_sleap_root_traits_7d_after_qc.csv", index=False
-    )
-    print(
-        f"Saved 7 Day-Old Plants data to CSV file: {Path(top_dir) / 'sleap_root_traits_7d.csv'} with shape: {sleap_root_traits_7d.shape}"
-    )
-
-    # 14 Day-Old Plants only
-    sleap_root_traits_14d = merged_data[merged_data["plant_age_days"] == 14]
-
-    # Save the filtered DataFrame to a CSV file
-    sleap_root_traits_14d.to_csv(
-        Path(top_dir) / "biomass_and_sleap_root_traits_14d_after_qc.csv", index=False
-    )
-    print(
-        f"Saved 14 Day-Old Plants data to CSV file: {Path(top_dir) / 'sleap_root_traits_14d.csv'} with shape: {sleap_root_traits_14d.shape}"
-    )
-    return sleap_root_traits_14d, sleap_root_traits_7d
+        # Save the filtered DataFrame to a CSV file
+        filtered_data.to_csv(
+            Path(output_dir) / f"traits_{int(age)}DAG.csv",
+            index=False,
+        )
+        logger.info(
+            f"Saved {age} Day-Old Plants data to CSV file: {Path(output_dir) / f'traits_{int(age)}DAG.csv'} with shape: {filtered_data.shape}"
+        )
+    return age, filtered_data
 
 
 if __name__ == "__main__":
