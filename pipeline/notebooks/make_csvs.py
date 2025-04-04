@@ -61,6 +61,7 @@ def load_config(Path, sys, argparse, OmegaConf, setup_step_logger):
     # Load the resolved config (DO NOT re-resolve interpolations)
     try:
         cfg = OmegaConf.load(args.config_path)
+        print(f"✅ Loaded config from {args.config_path}")
     except Exception as e:
         print(f"❌ Failed to load config from {args.config_path}: {e}")
         raise
