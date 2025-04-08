@@ -9,10 +9,18 @@ input:
   traits_csv: "tests/data/traits_summary.csv"
   experimental_design_excel: "tests/data/Wheat_EDPIE_cylinder_master_data.xlsx"
   experimental_design_sheet: "Redo_Master_Data"
-  
+
 steps:
   - make_csvs
-  # - cleanup
+  - data_cleanup
   # - outliers
   # - pca
   # - umap
+
+make_csvs_params:
+  col_start: 33
+  genotype_col_name: "Geno"
+  thresholds:
+    nan: 0.10
+    zero: 0.40
+    outlier: 0.80
