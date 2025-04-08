@@ -96,13 +96,28 @@ def run_pipeline(
         else:
             print(f"[✓] Step '{step}' completed.")
 
+        if export_html:
+            timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+            export_path = step_output_dir / f"{step}_{timestamp}.html"
+            export_command = [
+                "marimo",
+                "export",
+                "html",
+                notebook_path.as_posix(),
+                "-o",
+                export_path.as_posix(),
+                "--include-outputs",
+            ]
+            print(f"[INFO] Exporting HTML to: {export_path}")
+            subprocess.run(export_command)
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
         default="pipeline/configs/base.yaml",
-        help="Path to base config YAML (with interpolations)",
+        help="Path to base config YAML",
     )
     parser.add_argument(
         "--notebook-dir",
@@ -110,9 +125,19 @@ def main():
         help="Directory containing the pipeline notebooks.",
     )
     parser.add_argument(
+        "--edit",
+        action="store_true",
+        help="Open notebooks in edit mode instead of running them.",
+    )
+    parser.add_argument(
+        "--export-html",
+        action="store_true",
+        help="Export executed notebooks to HTML (applies to all modes).",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print the commands and config info but don't run the pipeline.",
+        help="Print commands and config info but don't run the pipeline.",
     )
     args = parser.parse_args()
 
@@ -120,7 +145,15 @@ def main():
     output_dir = Path(cfg.output_dir)
     config_path = save_config(cfg, output_dir)
 
-    run_pipeline(cfg, config_path, dry_run=args.dry_run, notebook_dir=args.notebook_dir)
+    run_pipeline(
+        cfg,
+        config_path,
+        edit_mode=args.edit,
+        export_html=args.export_html,
+        notebook_dir=args.notebook_dir,
+        dry_run=args.dry_run,
+    )
+
     print(f"[INFO] Pipeline completed.")
 
 
