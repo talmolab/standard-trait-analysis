@@ -26,6 +26,8 @@ def _():
     project_root = Path(".").resolve()
     sys.path.append(project_root.as_posix())
     from pipeline.pipeline_logger import setup_step_logger
+    from pipeline.config_utils import load_config
+
     return (
         DictConfig,
         List,
@@ -43,30 +45,18 @@ def _():
         plt,
         project_root,
         setup_step_logger,
+        load_config,
         sns,
         sys,
     )
 
 
 @app.cell
-def load_config(OmegaConf, Path, argparse, setup_step_logger, sys):
-    try:
-        # Parse CLI args from Marimo launch
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--config_path", type=str, default="config.yaml")
-        args = parser.parse_args(sys.argv[1:])
-        print(f"✅ Parsed args: {args}")
-    except Exception as e:
-        print(f"❌ Error parsing args: {e}")
-        raise
-
-    # Load the resolved config (DO NOT re-resolve interpolations)
-    try:
-        cfg = OmegaConf.load(args.config_path)
-        print(f"✅ Loaded config from {args.config_path}")
-    except Exception as e:
-        print(f"❌ Failed to load config from {args.config_path}: {e}")
-        raise
+def load_config(OmegaConf, Path, argparse, setup_step_logger, sys, load_config):
+    # Load the config file
+    cfg, args, parser = load_config(
+        config_arg="--config_path", default_path="pipeline/configs/base.yaml"
+    )
 
     LOGGING_LEVEL = cfg.logging.level.upper()
 
