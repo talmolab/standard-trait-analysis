@@ -28,21 +28,26 @@ def save_config(cfg, output_dir: Path) -> Path:
 def run_pipeline(
     cfg: DictConfig,
     config_path: Path,
-    dry_run: bool = False,
+    edit_mode: bool = False,
+    export_html: bool = False,
     notebook_dir: str = "pipeline/notebooks",
+    dry_run: bool = False,
 ) -> None:
     """Run the pipeline steps defined in the config.
 
     Args:
-        cfg (DictConfig): The resolved config object.
+        cfg (DictConfig): The OmegaConf config object.
         config_path (Path): Path to the resolved config file.
-        dry_run (bool): If True, print the commands without executing them.
+        edit_mode (bool): If True, open notebooks in edit mode.
+        export_html (bool): If True, export executed notebooks to HTML.
         notebook_dir (str): Directory containing the pipeline notebooks.
+        dry_run (bool): If True, print commands but don't execute them.
     """
     steps = cfg.get("steps", [])
     if not steps:
         print("[ERROR] No steps defined in the config.")
         return
+
     notebook_dir = Path(notebook_dir)
     if not notebook_dir.exists():
         print(f"[ERROR] Notebook directory '{notebook_dir}' does not exist.")
@@ -50,10 +55,18 @@ def run_pipeline(
 
     for step in steps:
         notebook_path = notebook_dir / f"{step}.py"
+        step_output_dir = config_path.parent / step
+        step_output_dir.mkdir(parents=True, exist_ok=True)
+
+        if not notebook_path.exists():
+            print(f"[ERROR] Notebook '{notebook_path}' does not exist.")
+            continue
+
+        marimo_command = "edit" if edit_mode else "run"
 
         command = [
             "marimo",
-            "run",
+            marimo_command,
             notebook_path.as_posix(),
             "--",
             "--config_path",
@@ -62,6 +75,7 @@ def run_pipeline(
 
         print(f"\n[INFO] ----------------------------")
         print(f"[INFO] Step: {step}")
+        print(f"[INFO] Mode: {'edit' if edit_mode else 'run'}")
         print(f"[INFO] Notebook: {notebook_path}")
         print(f"[INFO] Command: {' '.join(command)}")
         print(f"[INFO] Config Path: {config_path}")
@@ -70,11 +84,7 @@ def run_pipeline(
         if dry_run:
             continue
 
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess.run(command, capture_output=True, text=True)
 
         if result.returncode != 0:
             print(f"[ERROR] Step '{step}' failed.")
