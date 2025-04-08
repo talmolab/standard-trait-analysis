@@ -12,7 +12,14 @@ input:
 
 steps:
   - make_csvs
-  # - cleanup
+  - data_cleanup
   # - outliers
   # - pca
   # - umap
+
+make_csvs_params:
+  col_start: 2
+  thresholds:
+    nan: 0.10
+    zero: 0.40
+    outlier: 0.80
