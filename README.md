@@ -2,7 +2,8 @@
 Data cleanup, exploratory data analysis, and dimensionality reduction of standard phenotypic traits with metadata output from Bloom and sleap-roots-pipeline. 
 
 ```
-python pipeline/main.py --config "tests/data/base_dev.yaml"
+python pipeline/main.py --config tests/data/base_dev.yaml --edit --export-html
+python pipeline/main.py --config tests/data/base_dev.yaml --export-html
 ```
 
 ```
