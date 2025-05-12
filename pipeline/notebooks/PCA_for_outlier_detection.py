@@ -19,7 +19,6 @@ def _():
     from sklearn.decomposition import PCA
     from mpl_toolkits import mplot3d
     from string import ascii_letters
-
     return (
         EmpiricalCovariance,
         MinCovDet,
@@ -39,11 +38,11 @@ def _():
 
 @app.cell
 def _():
-    TOP_DIR = "2025-04-04"  # top-level directory
+    TOP_DIR = "pipeline_runs/run_2025-04-30_11-03-23"  # top-level directory
     SUB_DIR = "outlier_detection"  # subdirectory for notebook outputs
-    INPUT_CSV = "pipeline_runs/run_2025-04-04_12-38-15/data_cleanup/11DAG/traits_11DAG_cleaned.csv"  # input csv file without any NaNs
-    COL_START = 33  # column where traits starts to be used for PCA
-    THRESHOLD = 100  # threshold for Mahalanobis distance
+    INPUT_CSV = "pipeline_runs/run_2025-04-30_11-03-23/data_cleanup/11DAG/traits_11DAG_cleaned.csv"  # input csv file without any NaNs
+    COL_START = 3  # column where traits starts to be used for PCA
+    THRESHOLD = 200  # threshold for Mahalanobis distance
     return COL_START, INPUT_CSV, SUB_DIR, THRESHOLD, TOP_DIR
 
 
@@ -651,7 +650,6 @@ def _(df_no_outliers, sub_dir):
 @app.cell
 def _():
     import marimo as mo
-
     return (mo,)
 
 
