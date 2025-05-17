@@ -1,0 +1,26 @@
+run_name: run_${now:%Y-%m-%d_%H-%M-%S}
+output_dir: pipeline_runs/${run_name}
+
+logging:
+  level: INFO
+  log_dir: ${output_dir}/logs
+
+input:
+  traits_csv: "C:/Users/Elizabeth/Desktop/phenotyping/20250512_charlotte_rambla_edpie/traits_summary_crown_lateral.csv"
+  experimental_design_excel: "C:/Users/Elizabeth/Desktop/phenotyping/20250512_charlotte_rambla_edpie/Wheat_EDPIE_cylinder_master_data.xlsx"
+  experimental_design_sheet: "Redo_Master_Data"
+
+steps:
+  - make_csvs
+  - data_cleanup
+  # - outliers
+  # - pca
+  # - umap
+
+make_csvs_params:
+  col_start: 33
+  genotype_col_name: "Geno"
+  thresholds:
+    nan: 0.10
+    zero: 0.40
+    outlier: 0.80
