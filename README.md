@@ -17,3 +17,8 @@ marimo edit  pipeline/notebooks/make_csvs.py -- --config_path pipeline_runs\run_
 ```
 marimo edit  pipeline/notebooks/data_cleanup.py -- --config_path pipeline_runs\run_2025-04-04_12-38-15\config.yaml
 ```
+
+```
+python pipeline/main.py --config 20250516_config_wheat_cleanup.yaml --edit
+marimo edit  pipeline/notebooks/data_cleanup.py -- --config_path pipeline_runs\run_2025-05-17_11-59-11\config.yaml
+```
