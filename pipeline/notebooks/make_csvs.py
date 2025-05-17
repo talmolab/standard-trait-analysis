@@ -36,6 +36,7 @@ def _():
         Path,
         argparse,
         datetime,
+        load_config,
         logging,
         mo,
         np,
@@ -45,20 +46,23 @@ def _():
         plt,
         project_root,
         setup_step_logger,
-        load_config,
         sns,
         sys,
     )
 
 
 @app.cell
-def load_config(OmegaConf, Path, argparse, setup_step_logger, sys, load_config):
+def load_config(Path, load_config, setup_step_logger, sys):
     # Load the config file
     cfg, args, parser = load_config(
         config_arg="--config_path", default_path="pipeline/configs/base.yaml"
     )
 
     LOGGING_LEVEL = cfg.logging.level.upper()
+    if LOGGING_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+        raise ValueError(
+            f"Invalid logging level: {LOGGING_LEVEL}. Must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL."
+        )
 
     # Infer step name from script filename safely
     try:
