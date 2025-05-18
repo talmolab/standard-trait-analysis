@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.12.2"
+__generated_with = "0.13.10"
 app = marimo.App()
 
 
@@ -23,18 +23,15 @@ def _():
     project_root = Path(".").resolve()
     sys.path.append(project_root.as_posix())
     from pipeline.pipeline_logger import setup_step_logger
+
     return (
-        DictConfig,
-        List,
         OmegaConf,
         Optional,
         Path,
         argparse,
         np,
-        os,
         pd,
         plt,
-        project_root,
         re,
         setup_step_logger,
         sns,
@@ -118,24 +115,11 @@ def load_config(OmegaConf, Path, argparse, re, setup_step_logger, sys):
     return (
         COL_START,
         GENO_COL_NAME,
-        LOGGING_LEVEL,
         NAN_THRESHOLD,
         OUTLIER_THRESHOLD,
-        STEP_NAME,
         ZERO_THRESHOLD,
-        args,
-        cfg,
-        csv,
-        csvs,
         csvs_dict,
-        csvs_dir,
-        filename,
-        log_dir,
-        logger,
-        match,
         output_dir,
-        parser,
-        run_root,
     )
 
 
@@ -182,11 +166,32 @@ def define_utilities(Optional, Path, np, pd, plt, sns):
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         df = pd.read_csv(csv_path)
         traits = df.columns[col_start:]
-        df = df[["plant_qr_code", geno_col_name] + traits.tolist()]
+        print(f"Traits start with {traits[:5]}")
 
-        Y = df.iloc[:, col_start:].to_numpy()
-        df = df.iloc[~np.isnan(Y).all(axis=1)]
+        # Attempt to coerce all trait columns to numeric
+        trait_df = df.iloc[:, col_start:].apply(pd.to_numeric, errors="coerce")
+        df.iloc[:, col_start:] = trait_df  # Replace with coerced values
 
+        # Detect rows missing all trait values
+        Y = trait_df.to_numpy()
+        is_missing_all = np.isnan(Y).all(axis=1)
+        missing_barcodes_all = df["plant_qr_code"].iloc[is_missing_all]
+        miss_all_rows = df.iloc[is_missing_all]
+        print(f"{len(missing_barcodes_all)}/{len(df)} rows missing all features")
+        print(missing_barcodes_all)
+
+        # Save diagnostics
+        output_dir.mkdir(parents=True, exist_ok=True)
+        miss_all_rows.to_csv(output_dir / "df_miss_all_rows.csv", index=False)
+
+        # Raise an error if entire trait columns are still non-numeric
+        non_numeric_cols = trait_df.columns[trait_df.isna().all()]
+        if not non_numeric_cols.empty:
+            raise ValueError(
+                f"The following columns could not be converted to numeric values and contain only NaNs: {list(non_numeric_cols)}"
+            )
+
+        # Run EDA and filtering
         eda_path = output_dir / f"{csv_path.stem}_eda.csv"
         eda = get_eda_metrics(df, col_start, str(eda_path))
 
@@ -195,8 +200,8 @@ def define_utilities(Optional, Path, np, pd, plt, sns):
             | (eda["Fraction_Zeroes"] >= thresholds["zero"])
             | (eda["Fraction_Outliers"] >= thresholds["outlier"])
         ]["Trait"].tolist()
-        df_filtered = df.drop(columns=remove_traits)
 
+        df_filtered = df.drop(columns=remove_traits)
         Y_clean = df_filtered.iloc[:, col_start:].to_numpy()
         df_no_nans = df_filtered.iloc[~np.isnan(Y_clean).any(axis=1)]
 
@@ -236,17 +241,17 @@ def define_utilities(Optional, Path, np, pd, plt, sns):
         plt.savefig(out_path, bbox_inches="tight", facecolor="white")
         print(f"Saved plot to {out_path}")
         plt.close()
-    return (
-        count_outliers_per_trait,
-        eda_computation,
-        get_eda_metrics,
-        plot_eda_summary,
-        process_csv,
-    )
+
+    return plot_eda_summary, process_csv
 
 
 @app.cell
-def _():
+def _(COL_START, csvs_dict, pd):
+    dag_df = pd.read_csv(csvs_dict[11].as_posix())
+
+    array = dag_df.iloc[:, COL_START:].to_numpy()
+    # np.isnan(array).all(axis=1)
+    array
     return
 
 
@@ -258,11 +263,13 @@ def main(
     OUTLIER_THRESHOLD,
     ZERO_THRESHOLD,
     csvs_dict,
+    mo,
     output_dir,
     plot_eda_summary,
     process_csv,
 ):
     results_by_age = {}
+    tables = []
     thresholds = {
         "nan": NAN_THRESHOLD,
         "zero": ZERO_THRESHOLD,
@@ -282,22 +289,18 @@ def main(
             thresholds=thresholds,
         )
 
+        # Append a heading and the table itself to the display list
+        tables.append(mo.ui.text(f"### {age} DAG"))
+        tables.append(mo.ui.table(df_cleaned, max_rows=5))
         plot_eda_summary(eda_clean, age_dir, f"{age}DAG")
         results_by_age[age] = {"df": df_cleaned, "eda": eda_clean}
-    return (
-        age,
-        age_dir,
-        csv_path,
-        df_cleaned,
-        eda_clean,
-        results_by_age,
-        thresholds,
-    )
+    return
 
 
 @app.cell
 def _():
     import marimo as mo
+
     return (mo,)
 
 
