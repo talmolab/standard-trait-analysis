@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.12.2"
+__generated_with = "0.13.10"
 app = marimo.App()
 
 
@@ -28,27 +28,7 @@ def _():
     from pipeline.pipeline_logger import setup_step_logger
     from pipeline.config_utils import load_config
 
-    return (
-        DictConfig,
-        List,
-        OmegaConf,
-        Optional,
-        Path,
-        argparse,
-        datetime,
-        load_config,
-        logging,
-        mo,
-        np,
-        openpyxl,
-        os,
-        pd,
-        plt,
-        project_root,
-        setup_step_logger,
-        sns,
-        sys,
-    )
+    return Path, load_config, mo, pd, setup_step_logger, sys
 
 
 @app.cell
@@ -92,22 +72,17 @@ def load_config(Path, load_config, setup_step_logger, sys):
     TRAITS_CSV_PATH = Path(cfg.input.traits_csv)
     EXPERIMENT_EXCEL_PATH = Path(cfg.input.experimental_design_excel)
     SHEET_NAME = cfg.input.experimental_design_sheet
+    COL_START = cfg.make_csvs_params.col_start
     logger.info(f"TRAITS_CSV_PATH: {TRAITS_CSV_PATH}")
     logger.info(f"EXPERIMENT_EXCEL_PATH: {EXPERIMENT_EXCEL_PATH}")
     logger.info(f"SHEET_NAME: {SHEET_NAME}")
     return (
+        COL_START,
         EXPERIMENT_EXCEL_PATH,
-        LOGGING_LEVEL,
         SHEET_NAME,
-        STEP_NAME,
         TRAITS_CSV_PATH,
-        args,
-        cfg,
-        log_dir,
         logger,
         output_dir,
-        parser,
-        run_root,
     )
 
 
@@ -161,7 +136,16 @@ def merge_dfs(logger, master_data_df, pd, traits_df):
 
 
 @app.cell
-def make_csvs_by_age(Path, logger, merged_data, output_dir, unique_plant_ages):
+def make_csvs_by_age(
+    Path,
+    logger,
+    merged_data,
+    mo,
+    output_dir,
+    unique_plant_ages,
+):
+    tables = []
+    dfs_filtered = []
     for age in unique_plant_ages:
         # Filter the merged DataFrame for the current age
         filtered_data = merged_data[merged_data["plant_age_days"] == age]
@@ -171,10 +155,33 @@ def make_csvs_by_age(Path, logger, merged_data, output_dir, unique_plant_ages):
             Path(output_dir) / f"traits_{int(age)}DAG.csv",
             index=False,
         )
+        dfs_filtered.append(filtered_data)
         logger.info(
             f"Saved {age} Day-Old Plants data to CSV file: {Path(output_dir) / f'traits_{int(age)}DAG.csv'} with shape: {filtered_data.shape}"
         )
-    return age, filtered_data
+
+        # Append a heading and the table itself to the display list
+        tables.append(mo.ui.text(f"### {age} DAG"))
+        tables.append(mo.ui.table(filtered_data))
+
+    return dfs_filtered, tables
+
+
+@app.cell
+def _(tables):
+    tables
+    return
+
+
+@app.cell
+def _(COL_START, dfs_filtered):
+    dfs_filtered[0].iloc[:, COL_START:]
+    return
+
+
+@app.cell
+def _():
+    return
 
 
 if __name__ == "__main__":
