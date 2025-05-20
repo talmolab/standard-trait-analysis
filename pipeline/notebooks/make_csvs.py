@@ -28,7 +28,27 @@ def _():
     from pipeline.pipeline_logger import setup_step_logger
     from pipeline.config_utils import load_config
 
-    return Path, load_config, mo, pd, setup_step_logger, sys
+    return (
+        DictConfig,
+        List,
+        OmegaConf,
+        Optional,
+        Path,
+        argparse,
+        datetime,
+        load_config,
+        logging,
+        mo,
+        np,
+        openpyxl,
+        os,
+        pd,
+        plt,
+        project_root,
+        setup_step_logger,
+        sns,
+        sys,
+    )
 
 
 @app.cell
@@ -72,17 +92,24 @@ def load_config(Path, load_config, setup_step_logger, sys):
     TRAITS_CSV_PATH = Path(cfg.input.traits_csv)
     EXPERIMENT_EXCEL_PATH = Path(cfg.input.experimental_design_excel)
     SHEET_NAME = cfg.input.experimental_design_sheet
-    COL_START = cfg.make_csvs_params.col_start
+    COL_START = cfg.parameters.col_start
     logger.info(f"TRAITS_CSV_PATH: {TRAITS_CSV_PATH}")
     logger.info(f"EXPERIMENT_EXCEL_PATH: {EXPERIMENT_EXCEL_PATH}")
     logger.info(f"SHEET_NAME: {SHEET_NAME}")
     return (
         COL_START,
         EXPERIMENT_EXCEL_PATH,
+        LOGGING_LEVEL,
         SHEET_NAME,
+        STEP_NAME,
         TRAITS_CSV_PATH,
+        args,
+        cfg,
+        log_dir,
         logger,
         output_dir,
+        parser,
+        run_root,
     )
 
 
@@ -163,8 +190,7 @@ def make_csvs_by_age(
         # Append a heading and the table itself to the display list
         tables.append(mo.ui.text(f"### {age} DAG"))
         tables.append(mo.ui.table(filtered_data))
-
-    return dfs_filtered, tables
+    return age, dfs_filtered, filtered_data, tables
 
 
 @app.cell
@@ -176,11 +202,6 @@ def _(tables):
 @app.cell
 def _(COL_START, dfs_filtered):
     dfs_filtered[0].iloc[:, COL_START:]
-    return
-
-
-@app.cell
-def _():
     return
 
 
