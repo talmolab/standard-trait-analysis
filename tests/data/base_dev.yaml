@@ -17,10 +17,10 @@ steps:
   # - pca
   # - umap
 
-make_csvs_params:
-  col_start: 33
+parameters:
+  col_start: 34
   genotype_col_name: "Geno"
   thresholds:
-    nan: 0.10
+    nan: 0.20
     zero: 0.40
-    outlier: 0.80
+    outlier: 0.90
