@@ -189,18 +189,6 @@ def define_utilities(Optional, Path, np, pd, plt, sns):
         trait_df = df.iloc[:, col_start:].apply(pd.to_numeric, errors="coerce")
         df.iloc[:, col_start:] = trait_df  # Replace with coerced values
 
-        # Detect rows missing all trait values
-        Y = trait_df.to_numpy()
-        is_missing_all = np.isnan(Y).all(axis=1)
-        missing_barcodes_all = df["plant_qr_code"].iloc[is_missing_all]
-        miss_all_rows = df.iloc[is_missing_all]
-        print(f"{len(missing_barcodes_all)}/{len(df)} rows missing all features")
-        print(missing_barcodes_all)
-
-        # Save diagnostics
-        output_dir.mkdir(parents=True, exist_ok=True)
-        miss_all_rows.to_csv(output_dir / "df_miss_all_rows.csv", index=False)
-
         # Raise an error if entire trait columns are still non-numeric
         non_numeric_cols = trait_df.columns[trait_df.isna().all()]
         if not non_numeric_cols.empty:
@@ -208,25 +196,58 @@ def define_utilities(Optional, Path, np, pd, plt, sns):
                 f"The following columns could not be converted to numeric values and contain only NaNs: {list(non_numeric_cols)}"
             )
 
+        # Detect rows missing all trait values
+        Y = trait_df.to_numpy()
+        is_missing_all = np.isnan(Y).all(axis=1)
+        missing_barcodes_all = df["plant_qr_code"].iloc[is_missing_all]
+        miss_all_rows = df.iloc[is_missing_all]
+        print(f"{len(missing_barcodes_all)}/{len(df)} rows missing all features")
+        print(f"Missing barcodes: {missing_barcodes_all.tolist()}")
+
+        # Save diagnostics
+        output_dir.mkdir(parents=True, exist_ok=True)
+        miss_all_rows.to_csv(output_dir / "df_miss_all_rows.csv", index=False)
+
         # Run EDA and filtering
         eda_path = output_dir / f"{csv_path.stem}_eda.csv"
-        eda = get_eda_metrics(df, col_start, str(eda_path))
+        eda = get_eda_metrics(df, col_start, eda_path.as_posix())
 
         remove_traits = eda[
             (eda["Fraction_NaNs"] >= thresholds["nan"])
             | (eda["Fraction_Zeroes"] >= thresholds["zero"])
             | (eda["Fraction_Outliers"] >= thresholds["outlier"])
         ]["Trait"].tolist()
-
+        print(f"Removing traits: {remove_traits}")
+        # Save removed traits to a CSV
+        removed_traits_path = output_dir / "removed_traits.csv"
+        removed_traits_df = trait_df[remove_traits]
+        removed_traits_df.to_csv(removed_traits_path, index=False)
+        print(f"Saved removed traits to {removed_traits_path}")
         df_filtered = df.drop(columns=remove_traits)
+        print(f"Removed {len(remove_traits)} traits")
+
+        # Remove rows with NaNs in the remaining traits
         Y_clean = df_filtered.iloc[:, col_start:].to_numpy()
+        is_missing_any = np.isnan(Y_clean).any(axis=1)
+        missing_barcodes_any = df_filtered["plant_qr_code"].iloc[is_missing_any]
+        miss_any_rows = df_filtered.iloc[is_missing_any]
+        print(
+            f"{len(missing_barcodes_any)}/{len(df_filtered)} rows missing any features"
+        )
+        print(f"Missing barcodes: {missing_barcodes_any.tolist()}")
+        # Save diagnostics
+        miss_any_rows.to_csv(output_dir / "df_miss_any_rows.csv", index=False)
         df_no_nans = df_filtered.iloc[~np.isnan(Y_clean).any(axis=1)]
+        print(f"Removed {len(miss_any_rows)} rows with NaNs")
+        print(f"Remaining rows: {len(df_no_nans)}")
 
         eda_clean_path = output_dir / f"{csv_path.stem}_eda_clean.csv"
-        eda_clean = get_eda_metrics(df_no_nans, col_start, str(eda_clean_path))
+        eda_clean = get_eda_metrics(df_no_nans, col_start, eda_clean_path.as_posix())
 
         final_csv = output_dir / f"{csv_path.stem}_cleaned.csv"
         df_no_nans.to_csv(final_csv, index=False)
+        print(f"Saved cleaned CSV to {final_csv}")
+        print(f"EDA results saved to {eda_path}")
 
         return df_no_nans, eda_clean
 
