@@ -111,19 +111,32 @@ def load_config(OmegaConf, Path, argparse, re, setup_step_logger, sys):
     logger.info(f"CSV files: {csvs_dict}")
 
     # Step specific parameters
-    COL_START = cfg.make_csvs_params.col_start
-    GENO_COL_NAME = cfg.make_csvs_params.genotype_col_name
-    NAN_THRESHOLD = cfg.make_csvs_params.thresholds.nan
-    OUTLIER_THRESHOLD = cfg.make_csvs_params.thresholds.outlier
-    ZERO_THRESHOLD = cfg.make_csvs_params.thresholds.zero
+    COL_START = cfg.parameters.col_start
+    GENO_COL_NAME = cfg.parameters.genotype_col_name
+    NAN_THRESHOLD = cfg.parameters.thresholds.nan
+    OUTLIER_THRESHOLD = cfg.parameters.thresholds.outlier
+    ZERO_THRESHOLD = cfg.parameters.thresholds.zero
     return (
         COL_START,
         GENO_COL_NAME,
+        LOGGING_LEVEL,
         NAN_THRESHOLD,
         OUTLIER_THRESHOLD,
+        STEP_NAME,
         ZERO_THRESHOLD,
+        args,
+        cfg,
+        csv,
+        csvs,
         csvs_dict,
+        csvs_dir,
+        filename,
+        log_dir,
+        logger,
+        match,
         output_dir,
+        parser,
+        run_root,
     )
 
 
