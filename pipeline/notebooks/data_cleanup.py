@@ -25,13 +25,17 @@ def _():
     from pipeline.pipeline_logger import setup_step_logger
 
     return (
+        DictConfig,
+        List,
         OmegaConf,
         Optional,
         Path,
         argparse,
         np,
+        os,
         pd,
         plt,
+        project_root,
         re,
         setup_step_logger,
         sns,
