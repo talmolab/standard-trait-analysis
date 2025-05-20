@@ -327,10 +327,19 @@ def main(
 
         # Append a heading and the table itself to the display list
         tables.append(mo.ui.text(f"### {age} DAG"))
-        tables.append(mo.ui.table(df_cleaned, max_rows=5))
+        tables.append(mo.ui.table(df_cleaned))
         plot_eda_summary(eda_clean, age_dir, f"{age}DAG")
         results_by_age[age] = {"df": df_cleaned, "eda": eda_clean}
-    return
+    return (
+        age,
+        age_dir,
+        csv_path,
+        df_cleaned,
+        eda_clean,
+        results_by_age,
+        tables,
+        thresholds,
+    )
 
 
 @app.cell
