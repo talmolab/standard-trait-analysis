@@ -13,13 +13,19 @@ input:
 steps:
   - make_csvs
   - data_cleanup
-  # - outliers
+  - PCA_for_outlier_detection
   # - pca
   # - umap
 
-make_csvs_params:
-  col_start: 2
+
+# If `mahalanobis` is set (e.g., 25), use Mahalanobis distance.
+# If null, fall back to GMM-based detection with BIC-selected components.
+
+parameters:
+  col_start: 33
+  genotype_col_name: "Geno"
   thresholds:
-    nan: 0.10
+    nan: 0.20
     zero: 0.40
-    outlier: 0.80
+    outlier: 0.90
+    mahalanobis: 100
