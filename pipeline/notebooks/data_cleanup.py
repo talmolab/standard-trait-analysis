@@ -272,25 +272,23 @@ def define_utilities(Optional, Path, np, pd, plt, sns):
             x="Trait", y="Fraction_Outliers", hue="Prefix", data=_res, ax=_axes[2]
         )
         _axes[2].set_title(f"{label}: Fraction of Outliers")
-        _axes[2].tick_params(axis="x", rotation=90)
+        _axes[2].tick_params(labelbottom=False)
+        _axes[2].set_xlabel("Trait")
+        _axes[2].legend(title="Prefix", bbox_to_anchor=(1.05, 1), loc="upper left")
 
         plt.tight_layout()
         out_path = output_dir / f"{label}_eda_trait_overview.png"
         plt.savefig(out_path, bbox_inches="tight", facecolor="white")
-        print(f"Saved plot to {out_path}")
-        plt.close()
+        print(f"Saved plot to {out_path.as_posix()}")
+        plt.show()
 
-    return plot_eda_summary, process_csv
-
-
-@app.cell
-def _(COL_START, csvs_dict, pd):
-    dag_df = pd.read_csv(csvs_dict[11].as_posix())
-
-    array = dag_df.iloc[:, COL_START:].to_numpy()
-    # np.isnan(array).all(axis=1)
-    array
-    return
+    return (
+        count_outliers_per_trait,
+        eda_computation,
+        get_eda_metrics,
+        plot_eda_summary,
+        process_csv,
+    )
 
 
 @app.cell
