@@ -54,6 +54,7 @@ def run_pipeline(
         return
 
     for step in steps:
+        # Notebook is expected to match the step name
         notebook_path = notebook_dir / f"{step}.py"
         step_output_dir = config_path.parent / step
         step_output_dir.mkdir(parents=True, exist_ok=True)
