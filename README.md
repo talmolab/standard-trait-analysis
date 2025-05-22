@@ -31,3 +31,7 @@ marimo edit  pipeline/notebooks/data_cleanup.py -- --config_path pipeline_runs/r
 ```
 python pipeline/main.py --config 20250518_config_wheat_cleanup.yaml --edit
 ```
+
+```
+python pipeline/main.py --config 20250520_config_wheat_cleanup.yaml --edit
+```
