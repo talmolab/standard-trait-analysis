@@ -33,5 +33,6 @@ def setup_step_logger(
     logger.addHandler(file_handler)
     logger.setLevel(level)
 
+    logger.info(f"Logging level set to {logger.level}")
     logger.info(f"Logger initialized for step '{step_name}' at {log_file}")
     return logger

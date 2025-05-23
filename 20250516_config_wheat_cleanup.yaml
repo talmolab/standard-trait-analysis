@@ -6,8 +6,8 @@ logging:
   log_dir: ${output_dir}/logs
 
 input:
-  traits_csv: "tests/data/traits_summary.csv"
-  experimental_design_excel: "tests/data/Wheat_EDPIE_cylinder_master_data.xlsx"
+  traits_csv: "C:/Users/Elizabeth/Desktop/phenotyping/20250512_charlotte_rambla_edpie/traits_summary_crown_lateral.csv"
+  experimental_design_excel: "C:/Users/Elizabeth/Desktop/phenotyping/20250512_charlotte_rambla_edpie/Wheat_EDPIE_cylinder_master_data.xlsx"
   experimental_design_sheet: "Redo_Master_Data"
 
 steps:
@@ -17,10 +17,10 @@ steps:
   # - pca
   # - umap
 
-parameters:
-  col_start: 34
+make_csvs_params:
+  col_start: 33
   genotype_col_name: "Geno"
   thresholds:
-    nan: 0.20
+    nan: 0.10
     zero: 0.40
-    outlier: 0.90
+    outlier: 0.80
